@@ -2,7 +2,6 @@
   "name": "repository-context-generator",
   "description": "Generate comprehensive context files for GitHub repositories to help AI coding assistants understand project structure, patterns, and requirements instantly",
   "private": true,
-  "homepage": "https://josolinap.github.io/repocontext/",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
