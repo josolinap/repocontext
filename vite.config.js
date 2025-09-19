@@ -2,6 +2,6 @@
 import react from '@vitejs/plugin-react'
 
 export default {
-  base: process.env.NODE_ENV === 'production' ? '/josolinap.github.io/repocontext/",' : '/',
+  base: process.env.NODE_ENV === 'production' ? '/repocontext/",' : '/',
   plugins: [react()],
 }
