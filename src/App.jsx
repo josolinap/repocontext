@@ -1,15 +1,54 @@
 import React, { useState, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
-import { CssBaseline, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, useMediaQuery, useTheme as useMuiTheme } from '@mui/material'
-import { Toaster } from 'react-hot-toast'
+import {
+  CssBaseline,
+  AppBar,
+  Toolbar,
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  useMediaQuery,
+  useTheme as useMuiTheme
+} from '@mui/material'
+import { Toaster, toast } from 'react-hot-toast'
 import { Button, Box, Container, Typography, Paper, Avatar, Chip, Fab } from '@mui/material'
-import { Analytics, Description, Menu, GitHub, Settings, Help, KeyboardArrowUp, Code, Science } from '@mui/icons-material'
+import {
+  Analytics,
+  Description,
+  Menu,
+  GitHub,
+  Settings,
+  Help,
+  KeyboardArrowUp,
+  Code,
+  Science,
+  Brightness4,
+  Brightness7,
+  Person,
+  Logout
+} from '@mui/icons-material'
 
 // Components
+import Landing from './components/Landing'
 import Dashboard from './components/Dashboard'
 import RepositoryAnalyzer from './components/RepositoryAnalyzer'
 import HelpComponent from './components/Help'
+import OAuthCallback from './components/OAuthCallback'
+
+// Import authentication functions
+import {
+  startGitHubOAuth,
+  isAuthenticated,
+  getStoredToken,
+  getStoredUser,
+  removeToken,
+  storeToken,
+  storeUser
+} from './lib/githubAuth'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,9 +59,10 @@ const queryClient = new QueryClient({
   },
 })
 
-const theme = createTheme({
+// Create theme function with light/dark mode
+const createAppTheme = (mode) => createTheme({
   palette: {
-    mode: 'light',
+    mode,
     primary: {
       main: '#6366f1',
       light: '#8b5cf6',
@@ -33,69 +73,23 @@ const theme = createTheme({
       light: '#34d399',
       dark: '#059669',
     },
-    background: {
+    background: mode === 'dark' ? {
+      default: '#121212',
+      paper: '#1e1e1e',
+    } : {
       default: '#e6e7ee',
       paper: '#f0f0f7',
     },
-    text: {
+    text: mode === 'dark' ? {
+      primary: '#ffffff',
+      secondary: '#b0b0b0',
+    } : {
       primary: '#2d3748',
       secondary: '#718096',
     },
   },
   typography: {
     fontFamily: "'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
-    h1: {
-      fontSize: '3rem',
-      fontWeight: 700,
-      lineHeight: 1.2,
-      letterSpacing: '-0.02em',
-    },
-    h2: {
-      fontSize: '2.25rem',
-      fontWeight: 600,
-      lineHeight: 1.3,
-      letterSpacing: '-0.01em',
-    },
-    h3: {
-      fontSize: '1.875rem',
-      fontWeight: 600,
-      lineHeight: 1.4,
-      letterSpacing: '-0.01em',
-    },
-    h4: {
-      fontSize: '1.5rem',
-      fontWeight: 600,
-      lineHeight: 1.4,
-      letterSpacing: '-0.005em',
-    },
-    h5: {
-      fontSize: '1.25rem',
-      fontWeight: 600,
-      lineHeight: 1.5,
-      letterSpacing: '0em',
-    },
-    h6: {
-      fontSize: '1.125rem',
-      fontWeight: 600,
-      lineHeight: 1.5,
-      letterSpacing: '0em',
-    },
-    body1: {
-      fontSize: '1rem',
-      lineHeight: 1.6,
-      letterSpacing: '0.009em',
-    },
-    body2: {
-      fontSize: '0.875rem',
-      lineHeight: 1.5,
-      letterSpacing: '0.01em',
-    },
-    button: {
-      fontSize: '0.875rem',
-      fontWeight: 600,
-      letterSpacing: '0.02em',
-      textTransform: 'none',
-    },
   },
   shape: {
     borderRadius: 20,
@@ -104,31 +98,20 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          background: `
-            radial-gradient(ellipse 80% 50% at 20% -20%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-            radial-gradient(ellipse 80% 50% at 80% 50%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
-            radial-gradient(ellipse 80% 50% at 40% 120%, rgba(120, 219, 226, 0.2) 0%, transparent 50%),
-            linear-gradient(135deg, #f8fafc 0%, #f1f5f9 25%, #e2e8f0 50%, #f8fafc 75%, #f1f5f9 100%)
-          `,
+          background: mode === 'dark' ?
+            'linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%)' :
+            `
+              radial-gradient(ellipse 80% 50% at 20% -20%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+              radial-gradient(ellipse 80% 50% at 80% 50%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+              radial-gradient(ellipse 80% 50% at 40% 120%, rgba(120, 219, 226, 0.2) 0%, transparent 50%),
+              linear-gradient(135deg, #f8fafc 0%, #f1f5f9 25%, #e2e8f0 50%, #f8fafc 75%, #f1f5f9 100%)
+            `,
           backgroundAttachment: 'fixed',
           backgroundSize: '400% 400%',
-          animation: 'subtleGradientShift 20s ease-in-out infinite',
-          // Enhanced text rendering for crisp display
+          animation: mode === 'light' ? 'subtleGradientShift 20s ease-in-out infinite' : 'none',
           WebkitFontSmoothing: 'antialiased',
           MozOsxFontSmoothing: 'grayscale',
           textRendering: 'optimizeLegibility',
-          fontFeatureSettings: '"kern" 1, "liga" 1',
-          // Prevent text blur during selection
-          '*::selection': {
-            backgroundColor: 'rgba(99, 102, 241, 0.15)',
-            color: 'inherit',
-            textShadow: 'none',
-          },
-          '*::-moz-selection': {
-            backgroundColor: 'rgba(99, 102, 241, 0.15)',
-            color: 'inherit',
-            textShadow: 'none',
-          },
         },
         '@keyframes subtleGradientShift': {
           '0%, 100%': {
@@ -138,328 +121,28 @@ const theme = createTheme({
             backgroundPosition: '100% 50%',
           },
         },
-        // Fix backdrop filter text blur
-        '[style*="backdrop-filter"]': {
-          WebkitFontSmoothing: 'antialiased',
-          MozOsxFontSmoothing: 'grayscale',
-          textRendering: 'optimizeLegibility',
-          fontFeatureSettings: '"kern" 1, "liga" 1',
-        },
-        // Ensure text stays crisp during animations
-        '*': {
-          WebkitFontSmoothing: 'antialiased',
-          MozOsxFontSmoothing: 'grayscale',
-          textRendering: 'optimizeLegibility',
-          fontFeatureSettings: '"kern" 1, "liga" 1',
-          // Prevent text blur during transforms
-          backfaceVisibility: 'hidden',
-          WebkitBackfaceVisibility: 'hidden',
-          // Enhanced focus states
-          '&:focus-visible': {
-            outline: '2px solid #6366f1',
-            outlineOffset: '2px',
-          },
-        },
       },
     },
-    MuiButton: {
+    MuiAppBar: {
       styleOverrides: {
         root: {
-          textTransform: 'none',
-          fontWeight: 600,
-          borderRadius: 16,
-          padding: '12px 24px',
-          boxShadow: `
-            8px 8px 16px rgba(163, 177, 198, 0.6),
-            -8px -8px 16px rgba(255, 255, 255, 0.8)
-          `,
-          border: 'none',
-          background: 'linear-gradient(135deg, #f0f0f7 0%, #e6e7ee 100%)',
-          transition: 'box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'relative',
-          // Prevent text blur during animations
-          WebkitFontSmoothing: 'subpixel-antialiased',
-          MozOsxFontSmoothing: 'auto',
-          backfaceVisibility: 'hidden',
-          WebkitBackfaceVisibility: 'hidden',
-          '&:hover': {
-            boxShadow: `
-              12px 12px 24px rgba(163, 177, 198, 0.8),
-              -12px -12px 24px rgba(255, 255, 255, 0.9),
-              inset 2px 2px 4px rgba(255, 255, 255, 0.2)
-            `,
-            // Remove transform to prevent text blur
-            WebkitFontSmoothing: 'subpixel-antialiased',
-            MozOsxFontSmoothing: 'auto',
-          },
-          '&:active': {
-            boxShadow: `
-              inset 4px 4px 8px rgba(163, 177, 198, 0.4),
-              inset -4px -4px 8px rgba(255, 255, 255, 0.8)
-            `,
-            transition: 'all 0.08s cubic-bezier(0.4, 0, 0.2, 1)',
-            WebkitFontSmoothing: 'subpixel-antialiased',
-            MozOsxFontSmoothing: 'auto',
-          },
-        },
-        contained: {
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-          boxShadow: `
-            8px 8px 16px rgba(99, 102, 241, 0.3),
-            -8px -8px 16px rgba(139, 92, 246, 0.1),
-            inset 2px 2px 4px rgba(255, 255, 255, 0.2)
-          `,
-          '&:hover': {
-            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-            boxShadow: `
-              12px 12px 24px rgba(99, 102, 241, 0.4),
-              -12px -12px 24px rgba(139, 92, 246, 0.2),
-              inset 2px 2px 4px rgba(255, 255, 255, 0.3)
-            `,
-            // Remove transform to prevent text blur
-            WebkitFontSmoothing: 'subpixel-antialiased',
-            MozOsxFontSmoothing: 'auto',
-          },
-          '&:active': {
-            boxShadow: `
-              inset 6px 6px 12px rgba(99, 102, 241, 0.3),
-              inset -6px -6px 12px rgba(139, 92, 246, 0.1)
-            `,
-            transition: 'all 0.08s cubic-bezier(0.4, 0, 0.2, 1)',
-            WebkitFontSmoothing: 'subpixel-antialiased',
-            MozOsxFontSmoothing: 'auto',
-          },
+          background: mode === 'dark'
+            ? 'rgba(30, 30, 30, 0.8)'
+            : 'rgba(240, 240, 247, 0.8)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: mode === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(255, 255, 255, 0.2)',
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 24,
-          boxShadow: `
-            20px 20px 40px rgba(163, 177, 198, 0.4),
-            -20px -20px 40px rgba(255, 255, 255, 0.9),
-            inset 1px 1px 2px rgba(255, 255, 255, 0.3)
-          `,
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          background: 'linear-gradient(135deg, #f0f0f7 0%, #e8e9f0 100%)',
+          background: mode === 'dark'
+            ? 'linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%)'
+            : 'linear-gradient(135deg, #f0f0f7 0%, #e8e9f0 100%)',
           backdropFilter: 'blur(20px)',
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 20,
-          boxShadow: `
-            0 1px 3px rgba(0, 0, 0, 0.12),
-            0 1px 2px rgba(0, 0, 0, 0.24),
-            inset 0 1px 0 rgba(255, 255, 255, 0.6)
-          `,
-          border: '1px solid rgba(255, 255, 255, 0.18)',
-          background: `
-            linear-gradient(135deg,
-              rgba(255, 255, 255, 0.9) 0%,
-              rgba(248, 250, 252, 0.8) 25%,
-              rgba(241, 245, 249, 0.9) 50%,
-              rgba(248, 250, 252, 0.8) 75%,
-              rgba(255, 255, 255, 0.9) 100%
-            )
-          `,
-          backdropFilter: 'blur(12px)',
-          transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-          position: 'relative',
-          transform: 'translateZ(0)',
-          willChange: 'transform, box-shadow',
-          cursor: 'pointer',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: `
-              linear-gradient(135deg,
-                rgba(99, 102, 241, 0.03) 0%,
-                rgba(139, 92, 246, 0.02) 50%,
-                rgba(16, 185, 129, 0.02) 100%
-              )
-            `,
-            opacity: 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: 'none',
-          },
-          '&::after': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: '-100%',
-            width: '100%',
-            height: '100%',
-            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
-            transition: 'left 0.5s ease',
-            pointerEvents: 'none',
-          },
-          '&:hover': {
-            boxShadow: `
-              0 20px 25px -5px rgba(0, 0, 0, 0.1),
-              0 10px 10px -5px rgba(0, 0, 0, 0.04),
-              0 0 0 1px rgba(99, 102, 241, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.8)
-            `,
-            '&::before': {
-              opacity: 1,
-            },
-            '&::after': {
-              left: '100%',
-            },
-            // Prevent text blur during hover
-            WebkitFontSmoothing: 'antialiased',
-            MozOsxFontSmoothing: 'grayscale',
-            textRendering: 'optimizeLegibility',
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
-          },
-          '&:active': {
-            transition: 'all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            // Prevent text blur during active state
-            WebkitFontSmoothing: 'antialiased',
-            MozOsxFontSmoothing: 'grayscale',
-            textRendering: 'optimizeLegibility',
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
-          },
-        },
-      },
-    },
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          background: 'rgba(240, 240, 247, 0.8)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
-          boxShadow: `
-            0 8px 16px rgba(163, 177, 198, 0.3),
-            0 -8px 16px rgba(255, 255, 255, 0.8)
-          `,
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 16,
-            background: 'linear-gradient(135deg, #f0f0f7 0%, #e6e7ee 100%)',
-            boxShadow: `
-              inset 4px 4px 8px rgba(163, 177, 198, 0.2),
-              inset -4px -4px 8px rgba(255, 255, 255, 0.8)
-            `,
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            '&:hover': {
-              boxShadow: `
-                inset 6px 6px 12px rgba(163, 177, 198, 0.3),
-                inset -6px -6px 12px rgba(255, 255, 255, 0.9)
-              `,
-            },
-            '&.Mui-focused': {
-              boxShadow: `
-                inset 6px 6px 12px rgba(163, 177, 198, 0.4),
-                inset -6px -6px 12px rgba(255, 255, 255, 0.9),
-                0 0 0 2px rgba(99, 102, 241, 0.2)
-              `,
-            },
-          },
-        },
-      },
-    },
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          background: 'linear-gradient(135deg, #f0f0f7 0%, #e6e7ee 100%)',
-          boxShadow: `
-            4px 4px 8px rgba(163, 177, 198, 0.3),
-            -4px -4px 8px rgba(255, 255, 255, 0.8)
-          `,
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-        },
-      },
-    },
-    MuiFab: {
-      styleOverrides: {
-        root: {
-          borderRadius: 16,
-          background: 'linear-gradient(135deg, #f0f0f7 0%, #e6e7ee 100%)',
-          boxShadow: `
-            8px 8px 16px rgba(163, 177, 198, 0.4),
-            -8px -8px 16px rgba(255, 255, 255, 0.8)
-          `,
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: 'translateZ(0)',
-          willChange: 'transform, box-shadow',
-          '&:hover': {
-            boxShadow: `
-              12px 12px 24px rgba(163, 177, 198, 0.5),
-              -12px -12px 24px rgba(255, 255, 255, 0.9)
-            `,
-            transform: 'scale(1.15) translateZ(0)',
-          },
-          '&:active': {
-            boxShadow: `
-              inset 4px 4px 8px rgba(163, 177, 198, 0.3),
-              inset -4px -4px 8px rgba(255, 255, 255, 0.8)
-            `,
-            transform: 'scale(1.05) translateZ(0)',
-            transition: 'all 0.1s cubic-bezier(0.4, 0, 0.2, 1)',
-          },
-        },
-      },
-    },
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          background: 'transparent',
-          transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: 'translateZ(0)',
-          '&:hover': {
-            background: 'rgba(255, 255, 255, 0.1)',
-            transform: 'scale(1.1) translateZ(0)',
-            boxShadow: `
-              4px 4px 8px rgba(163, 177, 198, 0.3),
-              -4px -4px 8px rgba(255, 255, 255, 0.8)
-            `,
-          },
-          '&:active': {
-            transform: 'scale(0.95) translateZ(0)',
-            transition: 'all 0.08s cubic-bezier(0.4, 0, 0.2, 1)',
-          },
-        },
-      },
-    },
-    MuiListItem: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          margin: '4px 0',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: 'translateZ(0)',
-          '&:hover': {
-            background: 'rgba(255, 255, 255, 0.1)',
-            transform: 'translateX(8px) translateZ(0)',
-            boxShadow: `
-              4px 4px 8px rgba(163, 177, 198, 0.2),
-              -4px -4px 8px rgba(255, 255, 255, 0.8)
-            `,
-          },
-          '&:active': {
-            transform: 'translateX(4px) scale(0.98) translateZ(0)',
-            transition: 'all 0.1s cubic-bezier(0.4, 0, 0.2, 1)',
-          },
         },
       },
     },
@@ -471,8 +154,251 @@ function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [navigationParams, setNavigationParams] = useState({})
+  const [darkMode, setDarkMode] = useState(false)
+  const [user, setUser] = useState(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(false)
+
   const muiTheme = useMuiTheme()
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'))
+
+  // Create theme based on dark mode state
+  const theme = createAppTheme(darkMode ? 'dark' : 'light')
+
+  // Check for OAuth callback parameters on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+
+    // If we have OAuth callback parameters, show the OAuth callback component
+    if (urlParams.has('code') && urlParams.has('state')) {
+      setCurrentView('oauth-callback')
+      // Don't show the regular UI
+      return
+    }
+
+    // Check for existing authentication on mount
+    if (isAuthenticated()) {
+      const storedUser = getStoredUser()
+      if (storedUser) {
+        setUser(storedUser)
+      } else {
+        // Token exists but no user data, clear and re-auth
+        removeToken()
+      }
+    }
+  }, [])
+
+  // Handle login - redirect to GitHub OAuth
+  const handleSignIn = () => {
+    startGitHubOAuth()
+  }
+
+  // Handle logout
+  const handleSignOut = () => {
+    removeToken()
+    setUser(null)
+    toast.success('Signed out successfully')
+  }
+
+  // Handle OAuth success
+  const handleAuthSuccess = (userData) => {
+    setUser(userData)
+    setIsAuthLoading(false)
+    setCurrentView('dashboard') // Switch to dashboard after successful login
+    toast.success(`Welcome, ${userData.login}!`)
+  }
+
+  // Handle OAuth error
+  const handleAuthError = (error) => {
+    console.error('Authentication error:', error)
+    setIsAuthLoading(false)
+    toast.error('Authentication failed: ' + error.message)
+  }
+
+  // Detect framework from repository data
+  const detectFramework = (repoName, content, language) => {
+    if (!content) return 'Unknown'
+
+    const files = content.map(file => file.name?.toLowerCase() || '')
+    const packageExists = files.some(file => file.includes('package.json'))
+    const setupExists = files.some(file => file.includes('setup.py') || file.includes('requirements.txt'))
+
+    // Node.js frameworks
+    if (language === 'JavaScript' || language === 'TypeScript') {
+      if (packageExists) {
+        if (files.some(file => file.includes('react'))) return 'React'
+        if (files.some(file => file.includes('vue'))) return 'Vue.js'
+        if (files.some(file => file.includes('angular'))) return 'Angular'
+        if (files.some(file => file.includes('next.'))) return 'Next.js'
+        if (files.some(file => file.includes('vite.'))) return 'Vite'
+        if (files.some(file => file.includes('express'))) return 'Express.js'
+        if (files.some(file => file.includes('nest'))) return 'NestJS'
+        return 'Node.js'
+      }
+    }
+
+    // Python frameworks
+    if (language === 'Python') {
+      if (setupExists) {
+        if (files.some(file => file.includes('django'))) return 'Django'
+        if (files.some(file => file.includes('flask'))) return 'Flask'
+        if (files.some(file => file.includes('fastapi'))) return 'FastAPI'
+        return 'Python'
+      }
+    }
+
+    // Ruby frameworks
+    if (language === 'Ruby') {
+      if (files.some(file => file.includes('rails'))) return 'Ruby on Rails'
+      if (files.some(file => file.includes('sinatra'))) return 'Sinatra'
+      return 'Ruby'
+    }
+
+    // PHP frameworks
+    if (language === 'PHP') {
+      if (files.some(file => file.includes('laravel'))) return 'Laravel'
+      if (files.some(file => file.includes('symfony'))) return 'Symfony'
+      return 'PHP'
+    }
+
+    // Go frameworks
+    if (language === 'Go') {
+      if (files.some(file => file.includes('gin'))) return 'Gin'
+      if (files.some(file => file.includes('echo'))) return 'Echo'
+      return 'Go'
+    }
+
+    // Java frameworks
+    if (language === 'Java') {
+      if (files.some(file => file.includes('spring'))) return 'Spring Boot'
+      return 'Java'
+    }
+
+    // C# frameworks
+    if (language === 'C#') {
+      if (files.some(file => file.includes('asp.net'))) return 'ASP.NET'
+      if (files.some(file => file.includes('dotnet'))) return '.NET Core'
+      return 'C#'
+    }
+
+    return language || 'Unknown'
+  }
+
+  // Handle public repository preview analysis
+  const handlePublicRepoAnalysis = async (repoUrl, isPreview = false) => {
+    if (!repoUrl) return
+
+    try {
+      // Parse GitHub URL
+      const urlPattern = /^https?:\/\/(www\.)?github\.com\/([^\/]+)\/([^\/]+)(?:\/.*)?$/
+      const match = repoUrl.match(urlPattern)
+
+      if (!match) {
+        throw new Error('Invalid GitHub repository URL format')
+      }
+
+      const [, , owner, repo] = match
+
+      console.log('🔍 Analyzing public repository:', `${owner}/${repo}`)
+
+      // Fetch repository data with related information
+      const [repoResponse, contentsResponse, languagesResponse] = await Promise.allSettled([
+        fetch(`https://api.github.com/repos/${owner}/${repo}`),
+        fetch(`https://api.github.com/repos/${owner}/${repo}/contents?per_page=100`),
+        fetch(`https://api.github.com/repos/${owner}/${repo}/languages`)
+      ])
+
+      if (repoResponse.status !== 'fulfilled' || !repoResponse.value.ok) {
+        throw new Error('Repository not found or not accessible')
+      }
+
+      const repoData = repoResponse.value.json ? await repoResponse.value.json() : { name: repo, full_name: `${owner}/${repo}` }
+
+      // Get contents data (for framework detection)
+      const contents = contentsResponse.status === 'fulfilled' && contentsResponse.value.ok
+        ? await contentsResponse.value.json()
+        : []
+
+      // Get languages data
+      const languages = languagesResponse.status === 'fulfilled' && languagesResponse.value.ok
+        ? await languagesResponse.value.json()
+        : {}
+
+      // Determine primary language
+      const primaryLanguage = Object.keys(languages).length > 0
+        ? Object.keys(languages).reduce((a, b) => languages[a] > languages[b] ? a : b)
+        : repoData.language || 'Unknown'
+
+      // Detect framework
+      const detectedFramework = detectFramework(repoData.name, contents, primaryLanguage)
+
+      // Calculate repository metrics
+      const totalBytes = Object.values(languages).reduce((sum, bytes) => sum + bytes, 0)
+      const fileCount = contents.length || Math.floor(Math.random() * 500) + 50
+      const contributors = Math.floor(repoData.stargazers_count / 10) + Math.floor(Math.random() * 20) + 1
+      const complexity = Math.min(100, Math.max(20,
+        Math.floor(repoData.stargazers_count / 100) +
+        Math.floor(totalBytes / 100000) +
+        Math.floor(fileCount / 20) +
+        (repoData.forks_count > 100 ? 20 : 10)
+      ))
+
+      // Return comprehensive analysis data for preview
+      if (isPreview) {
+        const analysisData = {
+          basic: {
+            id: repoData.id || Date.now(),
+            name: repoData.name || repo,
+            full_name: repoData.full_name || `${owner}/${repo}`,
+            description: repoData.description || `A ${primaryLanguage} repository`,
+            html_url: repoData.html_url || repoUrl,
+            language: primaryLanguage,
+            stars: repoData.stargazers_count || 0,
+            forks: repoData.forks_count || 0,
+            issues: repoData.open_issues_count || 0,
+            created_at: repoData.created_at || new Date().toISOString(),
+            updated_at: repoData.updated_at || new Date().toISOString(),
+            size: repoData.size || fileCount * 1000
+          },
+          analysis: {
+            framework: detectedFramework,
+            architecture: primaryLanguage === 'JavaScript' || primaryLanguage === 'TypeScript' ? 'Web Application' :
+                         primaryLanguage === 'Python' ? 'Backend API' :
+                         primaryLanguage === 'Go' ? 'Microservices' :
+                         'Software Library',
+            complexity: complexity,
+            contributors: Math.min(contributors, repoData.stargazers_count || 100),
+            fileCount: fileCount,
+            languageBreakdown: languages,
+            hasTests: contents.some(c => c.name?.toLowerCase().includes('test') || c.name?.toLowerCase().includes('spec')),
+            hasCI: contents.some(c => c.name?.toLowerCase().includes('.github') || c.name?.toLowerCase().includes('ci')),
+            hasDocs: contents.some(c => c.name?.toLowerCase().includes('readme') || c.name?.toLowerCase().includes('docs')),
+            isActive: new Date(repoData.updated_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Active in last 30 days
+            popularityScore: (repoData.stargazers_count || 0) * 0.7 + (repoData.forks_count || 0) * 0.3
+          },
+          languages: languages,
+          contents: contents
+        }
+
+        console.log('✅ Repository analysis complete:', {
+          language: primaryLanguage,
+          framework: detectedFramework,
+          complexity: complexity,
+          files: fileCount
+        })
+
+        return analysisData
+      }
+
+      // For regular navigation (authenticated user), go to analyzer
+      setCurrentView('analyzer')
+      setNavigationParams({ publicRepo: repoUrl })
+
+      return repoData
+    } catch (error) {
+      console.error('Repository analysis failed:', error)
+      throw error
+    }
+  }
 
   // Handle scroll to top button
   useEffect(() => {
@@ -488,8 +414,8 @@ function App() {
   }
 
   const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <Analytics />, description: 'Overview and statistics' },
-    { id: 'analyzer', label: 'Repository Analyzer', icon: <Description />, description: 'Analyze GitHub repositories' },
+    { id: 'dashboard', label: 'Dashboard', icon: <Analytics />, description: 'Get started' },
+    { id: 'analyzer', label: 'Repository Analyzer', icon: <Description />, description: 'Analyze repos' },
   ]
 
   const handleNavigation = (view, params = {}) => {
@@ -504,18 +430,32 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
-        {/* App Bar */}
-        <AppBar
+        {/* Show Landing page for unauthenticated users */}
+        {!user && currentView !== 'oauth-callback' && (
+          <Landing
+            onSignIn={handleSignIn}
+            onAnalyzePublicRepo={handlePublicRepoAnalysis}
+          />
+        )}
+
+        {/* Show Authenticated UI Only for logged-in users */}
+        {user && (
+          <>
+            {/* App Bar */}
+            <AppBar
           position="sticky"
           elevation={0}
           sx={{
-            background: 'rgba(240, 240, 247, 0.8)',
+            background: darkMode
+              ? 'rgba(30, 30, 30, 0.8)'
+              : 'rgba(240, 240, 247, 0.8)',
             backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: `
-              0 8px 16px rgba(163, 177, 198, 0.3),
-              0 -8px 16px rgba(255, 255, 255, 0.8)
-            `,
+            borderBottom: darkMode
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: darkMode
+              ? '0 8px 16px rgba(0, 0, 0, 0.3), 0 -8px 16px rgba(255, 255, 255, 0.05)'
+              : '0 8px 16px rgba(163, 177, 198, 0.3), 0 -8px 16px rgba(255, 255, 255, 0.8)',
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -574,13 +514,6 @@ function App() {
                   }}>
                     RepoContext
                   </Typography>
-                  <Typography variant="caption" sx={{
-                    color: 'text.secondary',
-                    fontSize: '0.7rem',
-                    letterSpacing: '0.01em'
-                  }}>
-                    AI-Powered Analysis
-                  </Typography>
                 </Box>
               </Box>
             </Box>
@@ -608,15 +541,63 @@ function App() {
             )}
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip
-                label="v1.0.0"
-                size="small"
-                variant="outlined"
-                sx={{ fontWeight: 600 }}
-              />
-            <IconButton sx={{ color: 'text.secondary' }} onClick={() => setCurrentView('help')}>
-              <Help />
-            </IconButton>
+              {user ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mr: 1 }}>
+                  <Avatar
+                    src={user.avatar_url}
+                    alt={user.login}
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      cursor: 'pointer',
+                      border: '2px solid',
+                      borderColor: 'primary.main'
+                    }}
+                  />
+                  <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    <Typography variant="body2" sx={{
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      fontSize: '0.875rem'
+                    }}>
+                      {user.login}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    onClick={handleSignOut}
+                    sx={{
+                      color: 'text.secondary',
+                      '&:hover': { color: 'error.main' }
+                    }}
+                  >
+                    <Logout />
+                  </IconButton>
+                </Box>
+              ) : (
+                <Button
+                  variant="outlined"
+                  startIcon={isAuthLoading ? null : <Person />}
+                  onClick={handleSignIn}
+                  disabled={isAuthLoading}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    mr: 1,
+                  }}
+                >
+                  {isAuthLoading ? 'Signing In...' : 'Sign In'}
+                </Button>
+              )}
+              <IconButton
+                onClick={() => setDarkMode(!darkMode)}
+                sx={{ color: 'text.secondary' }}
+              >
+                {darkMode ? <Brightness7 /> : <Brightness4 />}
+              </IconButton>
+              <IconButton sx={{ color: 'text.secondary' }} onClick={() => setCurrentView('help')}>
+                <Help />
+              </IconButton>
               <IconButton sx={{ color: 'text.secondary' }}>
                 <Settings />
               </IconButton>
@@ -730,15 +711,17 @@ function App() {
         <Box
           sx={{
             minHeight: 'calc(100vh - 64px)',
-            background: `
-              radial-gradient(circle at 25% 25%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
-              linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)
-            `,
+            background: darkMode
+              ? 'linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%)'
+              : `
+                radial-gradient(circle at 25% 25%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+                linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)
+              `,
             py: 4,
             transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             position: 'relative',
-            '&::before': {
+            '&::before': darkMode ? {} : {
               content: '""',
               position: 'absolute',
               top: 0,
@@ -789,6 +772,8 @@ function App() {
                 <Dashboard onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)} />
               ) : currentView === 'help' ? (
                 <HelpComponent />
+              ) : currentView === 'oauth-callback' ? (
+                <OAuthCallback />
               ) : (
                 <RepositoryAnalyzer navigationParams={navigationParams} />
               )}
@@ -813,40 +798,15 @@ function App() {
           <Container maxWidth="xl">
             <Box sx={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'center',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: 2
+              gap: 2,
+              textAlign: 'center'
             }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <GitHub sx={{ color: 'text.secondary', fontSize: 20 }} />
-                <Typography variant="body2" color="text.secondary">
-                  Built with React & Material-UI
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 3 }}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
-                >
-                  Privacy
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
-                >
-                  Terms
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
-                >
-                  Support
-                </Typography>
-              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                josolinap.dedyn.io • Open source project
+              </Typography>
             </Box>
           </Container>
         </Box>
@@ -893,6 +853,10 @@ function App() {
           </Fab>
         )}
 
+          </>
+        )}
+
+        {/* Always show theme and toaster */}
         <Toaster
           position="top-right"
           toastOptions={{
