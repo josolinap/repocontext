@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Debug</title>
+</head>
+<body>
+    <h2>GitHub OAuth Debug</h2>
+    <button onclick="testOAuth()">Test OAuth URLs</button>
+    <div id="result"></div>
+
+    <script>
+        function testOAuth() {
+            const resultDiv = document.getElementById('result');
+
+            const environments = {
+                local: 'http://localhost:5174',
+                localWithPath: 'http://localhost:5174/repocontext/callback',
+                production: 'https://detailer.josolinap.dedyn.io',
+                productionWithPath: 'https://detailer.josolinap.dedyn.io/repocontext/callback'
+            };
+
+            resultDiv.innerHTML = '<h3>OAuth URL Test Results:</h3><ul>';
+
+            for (const [env, baseUrl] of Object.entries(environments)) {
+                const clientId = 'Ov23liGZOHsT9zLCyOJO';
+                const scope = 'user repo';
+
+                const params = new URLSearchParams({
+                    client_id: clientId,
+                    redirect_uri: baseUrl,
+                    scope: scope,
+                });
+
+                const fullUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
+
+                resultDiv.innerHTML += `<li><strong>${env}:</strong> <code>${baseUrl}</code> <button onclick="testUrl('${fullUrl}')">Test</button></li>`;
+            }
+
+            resultDiv.innerHTML += '</ul>';
+        }
+
+        function testUrl(url) {
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
