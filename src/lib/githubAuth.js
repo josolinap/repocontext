@@ -28,8 +28,8 @@ export const startGitHubOAuth = () => {
   let redirectUri;
 
   if (isProduction) {
-    // Production: Use the full app URL (include base path)
-    redirectUri = (window.location.origin + window.location.pathname).replace(/\/$/, '');
+    // Production: Use the app origin (GitHub app callback URL)
+    redirectUri = window.location.origin;
     console.log('🔄 Using Production OAuth URL:', redirectUri);
   } else {
     // Development: Use localhost
