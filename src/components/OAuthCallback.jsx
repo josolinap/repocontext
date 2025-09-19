@@ -57,7 +57,7 @@ const OAuthCallback = () => {
         toast.success(`Welcome ${userProfile.login}! Authentication successful.`);
 
         // Redirect to main application
-        const redirectTo = localStorage.getItem('oauth_redirect') || '/';
+        const redirectTo = localStorage.getItem('oauth_redirect') || '/repocontext';
         localStorage.removeItem('oauth_redirect');
 
         // Clean up URL parameters
@@ -78,7 +78,7 @@ const OAuthCallback = () => {
 
         // Redirect back to main app after showing error
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = '/repocontext';
         }, 3000);
       }
     };
