@@ -28,8 +28,8 @@ export const startGitHubOAuth = () => {
   let redirectUri;
 
   if (isProduction) {
-    // Production: Use the app origin (GitHub app callback URL)
-    redirectUri = window.location.origin;
+    // Production: Use the configured callback URL for OAuth
+    redirectUri = 'https://detailer.josolinap.dedyn.io/repocontext/callback';
     console.log('🔄 Using Production OAuth URL:', redirectUri);
   } else {
     // Development: Use localhost
