@@ -1,8 +1,7 @@
-import { defineConfig } from 'vite'
+// https://vite.dev/config/
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
-export default defineConfig({
-  base: '/josolinap.github.io/',
+export default {
+  base: process.env.NODE_ENV === 'production' ? '/josolinap.github.io/' : '/',
   plugins: [react()],
-})
+}

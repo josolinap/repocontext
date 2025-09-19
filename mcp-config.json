@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "repo-context-generator": {
+      "command": "node",
+      "args": ["src/lib/mcpServer.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
