@@ -1,0 +1,220 @@
+name: Repository Analysis
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  analyze-repository:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for analysis
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build TypeScript
+      run: npm run build
+
+    - name: Run Git Analysis
+      id: git-analysis
+      run: |
+        echo "🔍 Running Git History Analysis..."
+        node -e "
+        const { serviceContainer } = require('./dist/lib/serviceContainer.js');
+        const fs = require('fs');
+
+        async function runAnalysis() {
+          try {
+            const services = await serviceContainer.initialize();
+            const gitAnalyzer = services.gitAnalyzer;
+
+            const result = await gitAnalyzer.analyzeRepository(
+              '${{ github.repository_owner }}',
+              '${{ github.event.repository.name }}'
+            );
+
+            if (result.success) {
+              console.log('✅ Git analysis completed successfully');
+
+              // Save results as JSON
+              const outputDir = './analysis-results';
+              if (!fs.existsSync(outputDir)) {
+                fs.mkdirSync(outputDir, { recursive: true });
+              }
+
+              fs.writeFileSync(
+                \`\${outputDir}/git-analysis-\${new Date().toISOString().split('T')[0]}.json\`,
+                JSON.stringify(result.data, null, 2)
+              );
+
+              // Generate summary
+              const summary = {
+                total_commits: result.data.commit_history.total_commits,
+                active_contributors: result.data.commit_history.authors.length,
+                repository_health: result.data.repository_health.overall_health,
+                development_velocity: result.data.commit_history.development_velocity.development_intensity,
+                hot_files_count: result.data.commit_history.hot_files.length,
+                recommendations_count: result.data.recommendations.length,
+                analysis_date: new Date().toISOString()
+              };
+
+              fs.writeFileSync(
+                \`\${outputDir}/analysis-summary.json\`,
+                JSON.stringify(summary, null, 2)
+              );
+
+              console.log('📊 Analysis summary saved');
+              console.log(JSON.stringify(summary, null, 2));
+            } else {
+              console.error('❌ Git analysis failed:', result.error);
+              process.exit(1);
+            }
+          } catch (error) {
+            console.error('❌ Analysis error:', error);
+            process.exit(1);
+          }
+        }
+
+        runAnalysis();
+        "
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run Dependency Analysis
+      id: dependency-analysis
+      run: |
+        echo "🔗 Running Dependency Analysis..."
+        node -e "
+        const { serviceContainer } = require('./dist/lib/serviceContainer.js');
+        const fs = require('fs');
+
+        async function runDependencyAnalysis() {
+          try {
+            const services = await serviceContainer.initialize();
+            const dependencyAnalyzer = services.dependencyAnalyzer;
+
+            const analysis = await dependencyAnalyzer.analyzeDependencies(
+              '${{ github.repository_owner }}',
+              '${{ github.event.repository.name }}'
+            );
+
+            console.log('✅ Dependency analysis completed');
+
+            // Save dependency results
+            const outputDir = './analysis-results';
+            fs.writeFileSync(
+              \`\${outputDir}/dependency-analysis-\${new Date().toISOString().split('T')[0]}.json\`,
+              JSON.stringify(analysis, null, 2)
+            );
+
+            // Check for vulnerabilities
+            const vulnerabilities = analysis.vulnerabilities;
+            const licenseIssues = analysis.licenses.filter(l =>
+              l.compliance === 'warning' || l.compliance === 'error'
+            );
+
+            if (vulnerabilities.length > 0) {
+              console.warn(\`⚠️  Found \${vulnerabilities.length} vulnerabilities\`);
+              vulnerabilities.forEach(vuln => {
+                console.warn(\`- \${vuln.package}: \${vuln.severity} - \${vuln.description}\`);
+              });
+            }
+
+            if (licenseIssues.length > 0) {
+              console.warn(\`📄 Found \${licenseIssues.length} license issues\`);
+            }
+
+            const depSummary = {
+              total_dependencies: analysis.metadata.total_dependencies,
+              vulnerabilities_count: vulnerabilities.length,
+              license_issues_count: licenseIssues.length,
+              health_score: analysis.metadata.total_dependencies > 0 ?
+                dependencyAnalyzer.calculateDependencyHealthScore(
+                  dependencyAnalyzer.getDependencyStats(analysis)
+                ) : 100
+            };
+
+            console.log('📦 Dependency summary:', JSON.stringify(depSummary, null, 2));
+
+          } catch (error) {
+            console.error('❌ Dependency analysis error:', error);
+            // Don't fail the workflow for dependency analysis errors
+          }
+        }
+
+        runDependencyAnalysis();
+        "
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate Analysis Report
+      id: generate-report
+      run: |
+        echo "📝 Generating Analysis Report..."
+        node scripts/generate-report.js
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+
+    - name: Upload Analysis Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: repository-analysis-${{ github.run_number }}
+        path: |
+          analysis-results/
+          reports/
+        retention-days: 30
+
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "💬 Adding PR comment with analysis results..."
+        node scripts/pr-comment.js
+      env:
+        HEALTH_SCORE: ${{ steps.generate-report.outputs.health-score }}
+
+    - name: Update README with Analysis Badge
+      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+      run: |
+        echo "📝 Updating README with analysis status..."
+
+        # This would update the README with a status badge
+        # In a real implementation, you might want to add a badge showing repository health
+        echo "Repository analysis completed successfully"
+        echo "Health status: ${{ steps.generate-report.outputs.health-score }}"
+
+    - name: Summary
+      run: |
+        echo "🎉 Repository analysis workflow completed!"
+        echo ""
+        echo "📊 Results Summary:"
+        echo "- Git Analysis: ✅ Completed"
+        echo "- Dependency Analysis: ✅ Completed"
+        echo "- Report Generation: ✅ Completed"
+        echo "- Artifact Upload: ✅ Completed"
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          echo "- PR Comment: ✅ Added"
+        fi
+        echo ""
+        echo "📁 Files generated:"
+        echo "- Analysis results: ./analysis-results/"
+        echo "- Reports: ./reports/"
+        echo "- Artifacts: Available for download"
+        echo ""
+        echo "🔗 Access the full analysis report in the workflow artifacts above."

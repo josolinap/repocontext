@@ -29,11 +29,11 @@ export const startGitHubOAuth = () => {
 
   if (isProduction) {
     // Production: Use the configured callback URL for OAuth
-    redirectUri = 'https://detailer.josolinap.dedyn.io/repocontext/callback';
+    redirectUri = 'https://detailer.josolinap.dedyn.io';
     console.log('🔄 Using Production OAuth URL:', redirectUri);
   } else {
-    // Development: Use localhost
-    redirectUri = 'http://localhost:5174';
+    // Development: Use localhost (match Vite dev server port)
+    redirectUri = 'http://localhost:5173';
     console.log('🔄 Using Development OAuth URL:', redirectUri);
   }
 

@@ -22,7 +22,15 @@ Generate comprehensive context files for GitHub repositories to help AI coding a
 - **Repository Health**: Overall repository health and maintenance metrics
 - **Development Velocity**: Monitor project development speed and trends
 
-### 📝 Context Generation
+### � Advanced Git Integration ⭐
+- **Commit History Analysis**: Track development patterns and velocity
+- **Branch Management**: Compare branches, analyze merge patterns
+- **Code Churn Metrics**: Measure development activity and stability
+- **Contributor Statistics**: Detailed contribution analysis and patterns
+- **Repository Health**: Overall repository health and maintenance metrics
+- **Development Velocity**: Monitor project development speed and trends
+
+### �📝 Context Generation
 - **Multiple Templates**: Choose from Comprehensive, Minimal, Technical, or Overview templates
 - **AI-Ready Format**: Generates Markdown files optimized for AI assistants
 - **Customizable Output**: Tailored context based on repository characteristics

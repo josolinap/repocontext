@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": false,
+    "tsBuildInfoFile": null,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Path mapping */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/types/*": ["./src/types/*"]
+    },
+
+    /* Type definitions */
+    "types": ["vite/client", "node"]
+  },
+  "include": [
+    "src/**/*",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "**/*.js",
+    "**/*.js.backup",
+    "**/*.d.ts",
+    "**/__tests__/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "coverage",
+    "dist",
+    "node_modules"
+  ]
+}
