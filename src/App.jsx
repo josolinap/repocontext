@@ -15,7 +15,7 @@ import {
   useTheme as useMuiTheme
 } from '@mui/material'
 import { Toaster, toast } from 'react-hot-toast'
-import { Button, Box, Container, Typography, Paper, Avatar, Chip, Fab } from '@mui/material'
+import { Button, Box, Container, Typography, Paper, Avatar, Chip, Fab, Dialog, DialogTitle, DialogContent, DialogActions, Switch, FormControlLabel } from '@mui/material'
 import {
   Analytics,
   Description,
@@ -43,11 +43,8 @@ import OAuthCallback from './components/OAuthCallback'
 import {
   startGitHubOAuth,
   isAuthenticated,
-  getStoredToken,
   getStoredUser,
-  removeToken,
-  storeToken,
-  storeUser
+  removeToken
 } from './lib/githubAuth'
 
 const queryClient = new QueryClient({
@@ -158,13 +155,18 @@ function App() {
   const [user, setUser] = useState(null)
   const [isAuthLoading, setIsAuthLoading] = useState(false)
 
+  // Settings state
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+  const [autoSave, setAutoSave] = useState(true)
+
   const muiTheme = useMuiTheme()
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'))
 
   // Create theme based on dark mode state
   const theme = createAppTheme(darkMode ? 'dark' : 'light')
 
-  // Check for OAuth callback parameters on mount
+  // Check for OAuth callback parameters on mount and URL changes
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
 
@@ -179,13 +181,22 @@ function App() {
     if (isAuthenticated()) {
       const storedUser = getStoredUser()
       if (storedUser) {
+        console.log('✅ User authenticated, setting user state:', storedUser.login)
         setUser(storedUser)
       } else {
         // Token exists but no user data, clear and re-auth
+        console.log('⚠️ Token exists but no user data, clearing tokens')
         removeToken()
       }
+    } else {
+      console.log('❌ No authentication found')
     }
-  }, [])
+  }, [window.location.search]) // Listen to URL changes
+
+  // Debug: Log user state changes
+  useEffect(() => {
+    console.log('🔄 User state changed:', user ? `Authenticated as ${user.login}` : 'Not authenticated')
+  }, [user])
 
   // Handle login - redirect to GitHub OAuth
   const handleSignIn = () => {
@@ -199,20 +210,37 @@ function App() {
     toast.success('Signed out successfully')
   }
 
-  // Handle OAuth success
-  const handleAuthSuccess = (userData) => {
-    setUser(userData)
-    setIsAuthLoading(false)
-    setCurrentView('dashboard') // Switch to dashboard after successful login
-    toast.success(`Welcome, ${userData.login}!`)
+  // Handle settings
+  const handleSettingsOpen = () => {
+    setSettingsOpen(true)
   }
 
-  // Handle OAuth error
-  const handleAuthError = (error) => {
-    console.error('Authentication error:', error)
-    setIsAuthLoading(false)
-    toast.error('Authentication failed: ' + error.message)
+  const handleSettingsClose = () => {
+    setSettingsOpen(false)
   }
+
+  const handleSettingsSave = () => {
+    // Save settings to localStorage
+    localStorage.setItem('app_settings', JSON.stringify({
+      notificationsEnabled,
+      autoSave
+    }))
+    toast.success('Settings saved successfully!')
+    handleSettingsClose()
+  }
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('app_settings')
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings)
+      setNotificationsEnabled(settings.notificationsEnabled ?? true)
+      setAutoSave(settings.autoSave ?? true)
+    }
+  }, [])
+
+  // Note: OAuth success and error handlers are not used in this implementation
+  // as the OAuth callback component handles the flow directly
 
   // Detect framework from repository data
   const detectFramework = (repoName, content, language) => {
@@ -289,7 +317,7 @@ function App() {
 
     try {
       // Parse GitHub URL
-      const urlPattern = /^https?:\/\/(www\.)?github\.com\/([^\/]+)\/([^\/]+)(?:\/.*)?$/
+      const urlPattern = /^https?:\/\/(www\.)?github\.com\/([^/]+)\/([^/]+)(?:\/.*)?$/
       const match = repoUrl.match(urlPattern)
 
       if (!match) {
@@ -416,7 +444,22 @@ function App() {
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <Analytics />, description: 'Get started' },
     { id: 'analyzer', label: 'Repository Analyzer', icon: <Description />, description: 'Analyze repos' },
+    { id: 'help', label: 'Help', icon: <Help />, description: 'Get help' },
   ]
+
+  // Debug: Log current view changes
+  useEffect(() => {
+    console.log('🔄 Current view changed to:', currentView)
+  }, [currentView])
+
+  // Add quick access to analyzer from dashboard
+  const handleNavigateToAnalyzer = (params = {}) => {
+    setCurrentView('analyzer')
+    setNavigationParams(params)
+    if (isMobile) {
+      setDrawerOpen(false)
+    }
+  }
 
   const handleNavigation = (view, params = {}) => {
     setCurrentView(view)
@@ -469,53 +512,7 @@ function App() {
                   <Menu />
                 </IconButton>
               )}
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
-                borderRadius: 3,
-                px: 2,
-                py: 1,
-                border: '1px solid rgba(99, 102, 241, 0.2)',
-                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.1)'
-              }}>
-                <Box sx={{ position: 'relative' }}>
-                  <Avatar
-                    sx={{
-                      bgcolor: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                      width: 36,
-                      height: 36,
-                      boxShadow: '0 4px 8px rgba(99, 102, 241, 0.3)'
-                    }}
-                  >
-                    <Code sx={{ fontSize: 20 }} />
-                  </Avatar>
-                  <Avatar
-                    sx={{
-                      position: 'absolute',
-                      top: -4,
-                      right: -4,
-                      bgcolor: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                      width: 20,
-                      height: 20,
-                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
-                    }}
-                  >
-                    <Science sx={{ fontSize: 12 }} />
-                  </Avatar>
-                </Box>
-                <Box>
-                  <Typography variant="h6" sx={{
-                    fontWeight: 700,
-                    color: 'text.primary',
-                    fontSize: '1.1rem',
-                    letterSpacing: '-0.01em'
-                  }}>
-                    RepoContext
-                  </Typography>
-                </Box>
-              </Box>
+
             </Box>
 
             {!isMobile && (
@@ -598,7 +595,7 @@ function App() {
               <IconButton sx={{ color: 'text.secondary' }} onClick={() => setCurrentView('help')}>
                 <Help />
               </IconButton>
-              <IconButton sx={{ color: 'text.secondary' }}>
+              <IconButton sx={{ color: 'text.secondary' }} onClick={handleSettingsOpen}>
                 <Settings />
               </IconButton>
             </Box>
@@ -774,8 +771,10 @@ function App() {
                 <HelpComponent />
               ) : currentView === 'oauth-callback' ? (
                 <OAuthCallback />
-              ) : (
+              ) : currentView === 'analyzer' ? (
                 <RepositoryAnalyzer navigationParams={navigationParams} />
+              ) : (
+                <Dashboard onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)} />
               )}
             </Box>
           </Container>
@@ -798,14 +797,17 @@ function App() {
           <Container maxWidth="xl">
             <Box sx={{
               display: 'flex',
-              justifyContent: 'center',
+              justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: 2,
               textAlign: 'center'
             }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                josolinap.dedyn.io • Open source project
+                © 2025 josolinap All rights reserved.
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                Support: <a href="mailto:mail@josolinap.dedyn.io" style={{ color: 'inherit', textDecoration: 'none' }}>mail@josolinap.dedyn.io</a>
               </Typography>
             </Box>
           </Container>
@@ -855,6 +857,72 @@ function App() {
 
           </>
         )}
+
+        {/* Settings Dialog */}
+        <Dialog
+          open={settingsOpen}
+          onClose={handleSettingsClose}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: { borderRadius: 3 }
+          }}
+        >
+          <DialogTitle sx={{ pb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Settings sx={{ mr: 2, color: 'primary.main' }} />
+              Application Settings
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={notificationsEnabled}
+                    onChange={(e) => setNotificationsEnabled(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Enable Notifications"
+              />
+              <Typography variant="body2" color="text.secondary">
+                Receive notifications about job status updates and analysis completion
+              </Typography>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={autoSave}
+                    onChange={(e) => setAutoSave(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Auto-save Settings"
+              />
+              <Typography variant="body2" color="text.secondary">
+                Automatically save your settings and preferences
+              </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={handleSettingsClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSettingsSave}
+              sx={{
+                background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #0891b2, #0e7490)'
+                }
+              }}
+            >
+              Save Settings
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Always show theme and toaster */}
         <Toaster

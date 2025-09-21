@@ -9,27 +9,39 @@ import {
 } from '../lib/githubAuth';
 
 const OAuthCallback = () => {
+  console.log('🎯 OAuthCallback component rendering...');
+
   useEffect(() => {
+    console.log('🚀 OAuthCallback useEffect running...');
+
     const handleOAuthCallback = async () => {
       try {
+        console.log('🔍 Getting URL parameters...');
         // Get authorization code from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         const state = urlParams.get('state');
         const error = urlParams.get('error');
 
+        console.log('📋 URL parameters:', { code: !!code, state: !!state, error });
+
         if (error) {
           const errorMessage = `GitHub OAuth Error: ${error}`;
+          console.error('❌ OAuth error from GitHub:', error);
           throw new Error(errorMessage);
         }
 
         if (!code) {
+          console.error('❌ No authorization code received from GitHub');
           throw new Error('No authorization code received from GitHub');
         }
 
         // Verify state parameter for security
         const storedState = sessionStorage.getItem('oauth_state');
+        console.log('🔐 State verification:', { storedState, receivedState: state });
+
         if (!storedState || state !== storedState) {
+          console.error('❌ OAuth security check failed - state mismatch');
           throw new Error('OAuth security check failed - state mismatch');
         }
 
@@ -37,8 +49,10 @@ const OAuthCallback = () => {
 
         // Exchange code for access token
         const tokenResponse = await exchangeCodeForToken(code);
+        console.log('🔑 Token response received:', { hasAccessToken: !!tokenResponse.access_token });
 
         if (!tokenResponse.access_token) {
+          console.error('❌ Failed to obtain access token from GitHub');
           throw new Error('Failed to obtain access token from GitHub');
         }
 
@@ -56,20 +70,17 @@ const OAuthCallback = () => {
         // Show success message
         toast.success(`Welcome ${userProfile.login}! Authentication successful.`);
 
-        // Redirect to main application
-        const redirectTo = localStorage.getItem('oauth_redirect') || '/';
-        localStorage.removeItem('oauth_redirect');
-
         // Clean up URL parameters
         window.history.replaceState(null, null, window.location.pathname);
 
-        // Redirect after a short delay
+        // Force a page reload to update the authentication state
         setTimeout(() => {
-          window.location.href = redirectTo;
+          console.log('🔄 Reloading page to update authentication state...');
+          window.location.reload();
         }, 1500);
 
       } catch (error) {
-        console.error('OAuth callback failed:', error);
+        console.error('❌ OAuth callback failed:', error);
 
         toast.error(`Authentication failed: ${error.message}`);
 
@@ -78,6 +89,7 @@ const OAuthCallback = () => {
 
         // Redirect back to main app after showing error
         setTimeout(() => {
+          console.log('🔄 Redirecting to main app after error...');
           window.location.href = '/';
         }, 3000);
       }
@@ -93,16 +105,22 @@ const OAuthCallback = () => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '70vh',
+        minHeight: '100vh',
         py: 8,
-        px: 4
+        px: 4,
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)'
       }}
     >
       <Box
         sx={{
           textAlign: 'center',
           maxWidth: 500,
-          width: '100%'
+          width: '100%',
+          p: 4,
+          borderRadius: 3,
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
         }}
       >
         <CircularProgress size={80} sx={{ mb: 4, color: 'primary.main' }} />

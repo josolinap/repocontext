@@ -25,12 +25,15 @@ import {
   CheckCircle as CheckIcon
 } from '@mui/icons-material'
 import { toast } from 'react-hot-toast'
+import { storeTokenLocal, storeUserLocal } from '../lib/githubAuth'
 
 const Landing = ({ onSignIn, onAnalyzePublicRepo }) => {
   const [publicRepoUrl, setPublicRepoUrl] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [previewData, setPreviewData] = useState(null)
   const [currentStep, setCurrentStep] = useState(1)
+  const [githubToken, setGithubToken] = useState('')
+  const [tokenLoading, setTokenLoading] = useState(false)
 
   const demoRepoUrl = 'https://github.com/microsoft/vscode'
 
@@ -94,6 +97,60 @@ const Landing = ({ onSignIn, onAnalyzePublicRepo }) => {
       console.error(error)
     } finally {
       setAnalyzing(false)
+    }
+  }
+
+  const handleTokenLogin = async () => {
+    if (!githubToken.trim()) {
+      toast.error('Please enter a GitHub token')
+      return
+    }
+
+    setTokenLoading(true)
+    try {
+      // Basic token validation
+      if (githubToken.trim().length < 20) {
+        throw new Error('GitHub token appears to be too short. Please check your token.')
+      }
+
+      if (!githubToken.trim().startsWith('ghp_') && !githubToken.trim().startsWith('github_pat_')) {
+        throw new Error('GitHub token should start with "ghp_" or "github_pat_". Please check your token.')
+      }
+
+      // Test the token by fetching user profile
+      const response = await fetch('https://api.github.com/user', {
+        headers: {
+          'Authorization': `Bearer ${githubToken.trim()}`,
+          'Accept': 'application/vnd.github.v3+json',
+        },
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid GitHub token. Please check your token and try again.')
+        } else {
+          throw new Error(`GitHub API error: ${response.status}`)
+        }
+      }
+
+      const userData = await response.json()
+
+      // Store token and user data using the new localStorage functions
+      storeTokenLocal(githubToken.trim())
+      storeUserLocal(userData)
+
+      toast.success(`Welcome ${userData.login}! Authentication successful.`)
+
+      // Force page reload to update authentication state
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+
+    } catch (error) {
+      console.error('Token authentication failed:', error)
+      toast.error(`Authentication failed: ${error.message}`)
+    } finally {
+      setTokenLoading(false)
     }
   }
 
@@ -253,6 +310,99 @@ const Landing = ({ onSignIn, onAnalyzePublicRepo }) => {
             >
               Get Started - Sign In with GitHub
             </Button>
+          </Box>
+
+          {/* Alternative Token Login */}
+          <Box sx={{ mb: 8, maxWidth: 600, mx: 'auto' }}>
+            <Typography variant="h6" sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}>
+              Or use your GitHub Personal Access Token
+            </Typography>
+
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                borderRadius: 3,
+                background: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+            >
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    type="password"
+                    label="GitHub Personal Access Token"
+                    value={githubToken}
+                    onChange={(e) => setGithubToken(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                    helperText="Token needs 'repo' scope for private repositories"
+                    variant="outlined"
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => setGithubToken('')}
+                    disabled={!githubToken.trim()}
+                    sx={{
+                      py: 1.5,
+                      borderRadius: 2,
+                      textTransform: 'none'
+                    }}
+                  >
+                    Clear Token
+                  </Button>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={handleTokenLogin}
+                    disabled={!githubToken.trim() || tokenLoading}
+                    sx={{
+                      py: 1.5,
+                      borderRadius: 2,
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #059669, #047857)'
+                      },
+                      '&:disabled': {
+                        background: 'grey.400'
+                      },
+                      textTransform: 'none'
+                    }}
+                    endIcon={tokenLoading ? <CircularProgress size={20} /> : null}
+                  >
+                    {tokenLoading ? 'Authenticating...' : 'Sign In with Token'}
+                  </Button>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                      How to get a GitHub Personal Access Token:
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      1. Go to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', textDecoration: 'underline' }}>GitHub Settings → Personal Access Tokens</a>
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      2. Click "Generate new token (classic)"
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      3. Select scopes: <strong>repo</strong> (for private repositories) and <strong>user</strong> (for public info)
+                    </Typography>
+                    <Typography variant="body2">
+                      4. Copy the generated token and paste it above
+                    </Typography>
+                  </Alert>
+                </Grid>
+              </Grid>
+            </Paper>
           </Box>
         </Box>
 

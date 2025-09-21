@@ -25,9 +25,12 @@ import {
 } from '@mui/icons-material'
 import GitHubService from '../lib/github'
 
-const Dashboard = ({ onNavigateToAnalyzer }) => {
+const Dashboard = ({ onNavigateToAnalyzer = () => {} }) => {
+  console.log('🏠 Dashboard component rendering...')
+
   const [githubToken, setGithubToken] = useState('')
   const [recentJobs, setRecentJobs] = useState([])
+  const [userProfile, setUserProfile] = useState(null)
   const [stats, setStats] = useState({
     totalJobs: 0,
     totalRepos: 0,
@@ -36,6 +39,8 @@ const Dashboard = ({ onNavigateToAnalyzer }) => {
   })
 
   const githubService = new GitHubService()
+
+  console.log('📊 Dashboard state:', { githubToken: !!githubToken, recentJobsCount: recentJobs.length, stats })
 
   // Load data from localStorage
   useEffect(() => {
@@ -51,6 +56,24 @@ const Dashboard = ({ onNavigateToAnalyzer }) => {
     setRecentJobs(jobs)
     setStats({ ...stats, ...dashboardStats })
   }, [])
+
+  // Fetch user profile
+  const { data: userProfileData } = useQuery({
+    queryKey: ['user-profile', githubToken],
+    queryFn: async () => {
+      if (!githubToken) return null
+      try {
+        githubService.setToken(githubToken)
+        const profile = await githubService.getUserProfile()
+        return profile
+      } catch (error) {
+        console.error('Error fetching user profile:', error)
+        return null
+      }
+    },
+    enabled: !!githubToken,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  })
 
   // Fetch user repositories for stats
   const { data: repositories } = useQuery({
@@ -108,24 +131,29 @@ const Dashboard = ({ onNavigateToAnalyzer }) => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh' }}>
-      <Box sx={{ maxWidth: 1400, mx: 'auto', px: { xs: 2, sm: 3, lg: 4 }, py: 4 }}>
+    <Box sx={{ minHeight: '100vh', p: 4, backgroundColor: 'background.default' }}>
+      <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
         {/* Header */}
         <Box sx={{ mb: 6, textAlign: 'center' }}>
-          <Typography
-            variant="h1"
-            sx={{
-              mb: 2,
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #10b981)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-            }}
-          >
+          <Typography variant="h3" sx={{ mb: 2, fontWeight: 'bold', color: 'primary.main' }}>
             🏠 Dashboard
           </Typography>
-          <Typography variant="h5" color="text.secondary" sx={{ mb: 4 }}>
+          {userProfileData && (
+            <Typography
+              variant="h5"
+              sx={{
+                mb: 2,
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                fontWeight: 500
+              }}
+            >
+              Welcome back, {userProfileData.name || userProfileData.login}!
+            </Typography>
+          )}
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
             Manage your repository analysis jobs and view insights
           </Typography>
         </Box>

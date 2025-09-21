@@ -48,6 +48,33 @@ class GitHubService {
   }
 
   /**
+   * Get authenticated user's profile information
+   */
+  async getUserProfile(): Promise<GitHubUser> {
+    if (!this.token) {
+      throw new ValidationError('GitHub token is required', 'token');
+    }
+
+    const cacheKey = 'user_profile';
+    const cached = this.getCachedData<GitHubUser>(cacheKey);
+    if (cached) return cached;
+
+    return this.withRetry(async () => {
+      try {
+        const response = await this.octokit.users.getAuthenticated();
+
+        this.checkRateLimit(response.headers);
+        const user = response.data;
+
+        this.setCacheData(cacheKey, user);
+        return user;
+      } catch (error) {
+        throw this.handleGitHubError(error, 'fetching user profile');
+      }
+    });
+  }
+
+  /**
    * Get authenticated user's repositories
    */
   async getUserRepos(): Promise<GitHubRepository[]> {
@@ -171,7 +198,8 @@ class GitHubService {
             size: response.data.size,
             content: response.data.content,
             encoding: response.data.encoding,
-            sha: response.data.sha
+            sha: response.data.sha,
+            url: response.data.url
           }];
         }
 
@@ -228,11 +256,11 @@ class GitHubService {
             name: repoDetails.data.name,
             description: repoDetails.data.description,
             language: repoDetails.data.language,
-            stars: repoDetails.data.stargazers_count,
-            forks: repoDetails.data.forks_count,
-            issues: repoDetails.data.open_issues_count,
-            created: repoDetails.data.created_at,
-            updated: repoDetails.data.updated_at,
+            stars: (repoDetails.data as any).stargazers_count || 0,
+            forks: (repoDetails.data as any).forks_count || 0,
+            issues: (repoDetails.data as any).open_issues_count || 0,
+            created: (repoDetails.data as any).created_at || '',
+            updated: (repoDetails.data as any).updated_at || '',
             size: repoDetails.data.size
           },
           languages: repoDetails.data.languages || {},

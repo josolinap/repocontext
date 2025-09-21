@@ -126,7 +126,12 @@ const Help = () => {
   ]
 
   return (
-    <Box sx={{ minHeight: '100vh' }}>
+    <Box sx={{
+      minHeight: '100vh',
+      background: theme => theme.palette.mode === 'dark'
+        ? 'linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%)'
+        : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+    }}>
       <Box sx={{ maxWidth: 1400, mx: 'auto', px: { xs: 2, sm: 3, lg: 4 }, py: 4 }}>
         {/* Header */}
         <Box sx={{ mb: 6, textAlign: 'center' }}>

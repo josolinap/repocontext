@@ -32,6 +32,17 @@ export interface GitHubUser {
   avatar_url: string;
   html_url: string;
   type: 'User' | 'Organization';
+  name?: string | null;
+  email?: string | null;
+  bio?: string | null;
+  company?: string | null;
+  location?: string | null;
+  public_repos?: number;
+  public_gists?: number;
+  followers?: number;
+  following?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface GitHubContributor {
@@ -49,9 +60,11 @@ export interface GitHubFile {
   type: 'file' | 'dir';
   size?: number;
   download_url?: string | null;
-  url: string;
-  sha: string;
+  url?: string;
+  sha?: string;
   children?: GitHubFile[];
+  content?: string;
+  encoding?: string;
 }
 
 export interface GitHubPackageJson {

@@ -113,32 +113,56 @@ export const getUserRepos = async (token, params = {}) => {
 
 // Check if user is authenticated
 export const isAuthenticated = () => {
-  return !!getStoredToken();
+  return !!(getStoredToken() || getStoredTokenLocal());
 };
 
-// Get stored token
+// Get stored token (sessionStorage - for OAuth)
 export const getStoredToken = () => {
   return sessionStorage.getItem('github_token');
 };
 
-// Store token
+// Get stored token (localStorage - for token authentication)
+export const getStoredTokenLocal = () => {
+  return localStorage.getItem('github_token');
+};
+
+// Store token (sessionStorage - for OAuth)
 export const storeToken = (token) => {
   sessionStorage.setItem('github_token', token);
+};
+
+// Store token (localStorage - for token authentication)
+export const storeTokenLocal = (token) => {
+  localStorage.setItem('github_token', token);
 };
 
 // Remove stored token
 export const removeToken = () => {
   sessionStorage.removeItem('github_token');
   sessionStorage.removeItem('github_user');
+  localStorage.removeItem('github_token');
+  localStorage.removeItem('github_user');
 };
 
-// Store user data
+// Store user data (sessionStorage - for OAuth)
 export const storeUser = (userData) => {
   sessionStorage.setItem('github_user', JSON.stringify(userData));
 };
 
-// Get stored user data
+// Store user data (localStorage - for token authentication)
+export const storeUserLocal = (userData) => {
+  localStorage.setItem('github_user', JSON.stringify(userData));
+};
+
+// Get stored user data (check both storages)
 export const getStoredUser = () => {
-  const userData = sessionStorage.getItem('github_user');
+  // Check sessionStorage first (OAuth)
+  let userData = sessionStorage.getItem('github_user');
+  if (userData) {
+    return JSON.parse(userData);
+  }
+
+  // Check localStorage (token authentication)
+  userData = localStorage.getItem('github_user');
   return userData ? JSON.parse(userData) : null;
 };
