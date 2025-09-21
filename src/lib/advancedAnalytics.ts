@@ -93,10 +93,10 @@ export class AdvancedAnalyticsEngine {
 
       // Calculate overall scores
       const overallScore = this.calculateOverallScore({
-        quality: qualityInsights.score,
-        risk: riskInsights.riskLevel,
-        performance: performanceInsights.score,
-        trends: trendInsights.score
+        quality: qualityInsights.overallScore,
+        risk: riskInsights.overallRisk,
+        performance: performanceInsights.predictedScore,
+        trends: this.calculateTrendScore(trendInsights)
       });
 
       const insights: RepositoryInsights = {
@@ -473,11 +473,23 @@ export class AdvancedAnalyticsEngine {
   }
 
   /**
+   * Calculate trend score from TrendAnalysis
+   */
+  private calculateTrendScore(trends: TrendAnalysis): number {
+    switch (trends.direction) {
+      case 'improving': return 0.9;
+      case 'declining': return 0.3;
+      case 'stable': return 0.6;
+      default: return 0.5;
+    }
+  }
+
+  /**
    * Calculate overall repository score
    */
   private calculateOverallScore(scores: {
     quality: number;
-    risk: number;
+    risk: string;
     performance: number;
     trends: number;
   }): number {
@@ -661,21 +673,21 @@ export class AdvancedAnalyticsEngine {
     return recommendations;
   }
 
-  private assessTechnicalDebt(gitAnalysis: any): { score: number; level: string; insights: string[] } {
+  private assessTechnicalDebt(gitAnalysis: any): { score: number; level: "low" | "medium" | "high" | "critical"; insights: string[] } {
     const churnFiles = gitAnalysis?.commit_history?.code_churn || [];
     const highChurnFiles = churnFiles.filter((f: any) => f.risk === 'high').length;
 
     let score = 0.8;
-    let level = 'low';
+    let level: "low" | "medium" | "high" | "critical" = 'low';
     const insights: string[] = [];
 
     if (highChurnFiles > 10) {
       score = 0.3;
-      level = 'high' as const;
+      level = 'high';
       insights.push('High technical debt due to frequent changes');
     } else if (highChurnFiles > 5) {
       score = 0.6;
-      level = 'medium' as const;
+      level = 'medium';
       insights.push('Moderate technical debt detected');
     } else {
       insights.push('Low technical debt');
@@ -684,18 +696,18 @@ export class AdvancedAnalyticsEngine {
     return { score, level, insights };
   }
 
-  private assessSecurityRisk(dependencyAnalysis: any): { score: number; level: string; insights: string[] } {
+  private assessSecurityRisk(dependencyAnalysis: any): { score: number; level: "low" | "medium" | "high" | "critical"; insights: string[] } {
     const vulnerabilities = dependencyAnalysis?.vulnerabilities || [];
     const criticalVulns = vulnerabilities.filter((v: any) => v.severity === 'critical').length;
     const highVulns = vulnerabilities.filter((v: any) => v.severity === 'high').length;
 
     let score = 0.9;
-    let level = 'low';
+    let level: "low" | "medium" | "high" | "critical" = 'low';
     const insights: string[] = [];
 
     if (criticalVulns > 0) {
       score = 0.2;
-      level = 'critical' as const;
+      level = 'critical';
       insights.push(`${criticalVulns} critical security vulnerabilities found`);
     } else if (highVulns > 0) {
       score = 0.5;
@@ -712,21 +724,21 @@ export class AdvancedAnalyticsEngine {
     return { score, level, insights };
   }
 
-  private assessMaintenanceRisk(gitAnalysis: any): { score: number; level: string; insights: string[] } {
+  private assessMaintenanceRisk(gitAnalysis: any): { score: number; level: "low" | "medium" | "high" | "critical"; insights: string[] } {
     const avgCommitsPerDay = gitAnalysis?.commit_history?.development_velocity?.avg_commits_per_day || 0;
     const activeContributors = gitAnalysis?.commit_history?.authors?.length || 0;
 
     let score = 0.7;
-    let level = 'medium';
+    let level: "low" | "medium" | "high" | "critical" = 'medium';
     const insights: string[] = [];
 
     if (avgCommitsPerDay < 0.1) {
       score = 0.4;
-      level = 'high' as const;
+      level = 'high';
       insights.push('Low maintenance activity detected');
     } else if (activeContributors < 2) {
       score = 0.5;
-      level = 'high' as const;
+      level = 'high';
       insights.push('Limited contributor base increases maintenance risk');
     } else {
       insights.push('Good maintenance indicators');
@@ -735,22 +747,22 @@ export class AdvancedAnalyticsEngine {
     return { score, level, insights };
   }
 
-  private assessTeamRisk(gitAnalysis: any): { score: number; level: string; insights: string[] } {
+  private assessTeamRisk(gitAnalysis: any): { score: number; level: "low" | "medium" | "high" | "critical"; insights: string[] } {
     const authors = gitAnalysis?.commit_history?.authors || [];
     const topContributor = authors[0];
     const totalCommits = authors.reduce((sum: number, a: any) => sum + a.commits, 0);
 
     let score = 0.8;
-    let level = 'low';
+    let level: "low" | "medium" | "high" | "critical" = 'low';
     const insights: string[] = [];
 
     if (authors.length === 1) {
       score = 0.3;
-      level = 'high' as const;
+      level = 'high';
       insights.push('Single contributor risk - knowledge concentration');
     } else if (topContributor && (topContributor.commits / totalCommits) > 0.8) {
       score = 0.5;
-      level = 'medium' as const;
+      level = 'medium';
       insights.push('Heavy reliance on single contributor');
     } else {
       insights.push('Good team distribution');
@@ -804,16 +816,16 @@ export class AdvancedAnalyticsEngine {
     const developmentIntensity = gitAnalysis?.commit_history?.development_velocity?.development_intensity || 'medium';
 
     let score = 0.6;
-    let trend = 'stable';
+    let trend: "increasing" | "decreasing" | "stable" = 'stable';
     const insights: string[] = [];
 
     if (avgCommitsPerDay > 2) {
       score = 0.8;
-      trend = 'increasing' as const;
+      trend = 'increasing';
       insights.push('Strong development velocity');
     } else if (avgCommitsPerDay < 0.5) {
       score = 0.3;
-      trend = 'decreasing' as const;
+      trend = 'decreasing';
       insights.push('Low development velocity');
     }
 
@@ -829,16 +841,16 @@ export class AdvancedAnalyticsEngine {
     const churnScore = gitAnalysis?.repository_health?.code_churn_score || 50;
 
     let score = 0.6;
-    let trend = 'stable';
+    let trend: "increasing" | "decreasing" | "stable" = 'stable';
     const insights: string[] = [];
 
     if (healthScore === 'excellent') {
       score = 0.9;
-      trend = 'improving';
+      trend = 'increasing';
       insights.push('Excellent code quality');
     } else if (healthScore === 'poor') {
       score = 0.2;
-      trend = 'declining';
+      trend = 'decreasing';
       insights.push('Poor code quality requires attention');
     }
 
@@ -854,16 +866,16 @@ export class AdvancedAnalyticsEngine {
     const avgCommitsPerDay = gitAnalysis?.commit_history?.development_velocity?.avg_commits_per_day || 0;
 
     let score = 0.7;
-    let trend = 'stable';
+    let trend: "increasing" | "decreasing" | "stable" = 'stable';
     const insights: string[] = [];
 
     if (authors.length > 3 && avgCommitsPerDay > 1) {
       score = 0.9;
-      trend = 'improving';
+      trend = 'increasing';
       insights.push('High team productivity');
     } else if (authors.length < 2 || avgCommitsPerDay < 0.3) {
       score = 0.4;
-      trend = 'declining';
+      trend = 'decreasing';
       insights.push('Low team productivity');
     }
 
@@ -875,7 +887,7 @@ export class AdvancedAnalyticsEngine {
     const highChurnFiles = churnFiles.filter((f: any) => f.risk === 'high').length;
 
     let score = 0.8;
-    let trend = 'stable';
+    let trend: "increasing" | "decreasing" | "stable" = 'stable';
     const insights: string[] = [];
 
     if (highChurnFiles > 5) {
@@ -920,16 +932,16 @@ export class AdvancedAnalyticsEngine {
     const avgCommitsPerDay = gitAnalysis?.commit_history?.development_velocity?.avg_commits_per_day || 0;
 
     let score = 0.6;
-    let trend = 'stable';
+    let trend: "increasing" | "decreasing" | "stable" = 'stable';
     const insights: string[] = [];
 
     if (avgCommitsPerDay > 1.5) {
       score = 0.8;
-      trend = 'increasing' as const;
+      trend = 'increasing';
       insights.push('Increasing commit activity');
     } else if (avgCommitsPerDay < 0.5) {
       score = 0.3;
-      trend = 'decreasing' as const;
+      trend = 'decreasing';
       insights.push('Decreasing commit activity');
     }
 
@@ -941,16 +953,16 @@ export class AdvancedAnalyticsEngine {
     const recentAuthors = authors.filter((a: any) => a.commits > 0);
 
     let score = 0.7;
-    let trend = 'stable';
+    let trend: "increasing" | "decreasing" | "stable" = 'stable';
     const insights: string[] = [];
 
     if (recentAuthors.length > 3) {
       score = 0.9;
-      trend = 'improving';
+      trend = 'increasing';
       insights.push('Growing contributor base');
     } else if (recentAuthors.length === 1) {
       score = 0.4;
-      trend = 'declining';
+      trend = 'decreasing';
       insights.push('Shrinking contributor base');
     }
 
@@ -961,24 +973,24 @@ export class AdvancedAnalyticsEngine {
     const healthScore = gitAnalysis?.repository_health?.overall_health || 'fair';
 
     let score = 0.6;
-    let trend = 'stable';
+    let trend: "increasing" | "decreasing" | "stable" = 'stable';
     const insights: string[] = [];
 
     if (healthScore === 'excellent') {
       score = 0.9;
-      trend = 'improving';
+      trend = 'increasing';
       insights.push('Improving code quality trends');
     } else if (healthScore === 'poor') {
       score = 0.2;
-      trend = 'declining';
+      trend = 'decreasing';
       insights.push('Declining code quality trends');
     }
 
     return { score, trend, insights };
   }
 
-  private identifyTrendPatterns(analysisData: any): Array<{ type: string; description: string; significance: string }> {
-    const patterns: Array<{ type: string; description: string; significance: string }> = [];
+  private identifyTrendPatterns(analysisData: any): Array<{ type: string; description: string; significance: "low" | "medium" | "high" }> {
+    const patterns: Array<{ type: string; description: string; significance: "low" | "medium" | "high" }> = [];
 
     const gitAnalysis = analysisData.gitAnalysis;
     if (gitAnalysis) {
@@ -989,7 +1001,7 @@ export class AdvancedAnalyticsEngine {
         patterns.push({
           type: 'high_activity',
           description: 'High development activity detected',
-          significance: 'high' as const
+          significance: 'high'
         });
       }
 
@@ -997,7 +1009,7 @@ export class AdvancedAnalyticsEngine {
         patterns.push({
           type: 'broad_collaboration',
           description: 'Broad team collaboration observed',
-          significance: 'medium' as const
+          significance: 'medium'
         });
       }
     }
@@ -1009,13 +1021,13 @@ export class AdvancedAnalyticsEngine {
     const predictions: Array<{ metric: string; prediction: string; confidence: number }> = [];
 
     Object.entries(trends.metrics).forEach(([metric, data]: [string, any]) => {
-      if (data.trend === 'improving') {
+      if (data.trend === 'increasing') {
         predictions.push({
           metric,
           prediction: `Expected to continue improving over next 3 months`,
           confidence: 0.7
         });
-      } else if (data.trend === 'declining') {
+      } else if (data.trend === 'decreasing') {
         predictions.push({
           metric,
           prediction: `May require intervention to reverse declining trend`,
