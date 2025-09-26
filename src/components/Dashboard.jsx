@@ -343,6 +343,52 @@ const Dashboard = ({ onNavigateToAnalyzer = () => {} }) => {
               </CardContent>
             </Card>
           </Grid>
+
+          <Grid item xs={12} md={6} lg={3}>
+            <Card
+              sx={{
+                height: '100%',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  boxShadow: `
+                    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+                    0 10px 10px -5px rgba(0, 0, 0, 0.04)
+                  `,
+                  WebkitFontSmoothing: 'antialiased',
+                  MozOsxFontSmoothing: 'grayscale',
+                  textRendering: 'optimizeLegibility'
+                }
+              }}
+              onClick={() => onNavigateToAnalyzer && onNavigateToAnalyzer({ specDriven: true })}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Typography sx={{ fontSize: 40, mr: 2 }}>🚀</Typography>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Spec-Driven Dev
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      AI-powered development workflow
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    fontWeight: 500
+                  }}
+                >
+                  Start Development →
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
 
         {/* Stats Overview */}

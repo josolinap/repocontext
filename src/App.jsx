@@ -38,6 +38,7 @@ import Dashboard from './components/Dashboard'
 import RepositoryAnalyzer from './components/RepositoryAnalyzer'
 import HelpComponent from './components/Help'
 import OAuthCallback from './components/OAuthCallback'
+import SpecDrivenDevelopment from './components/SpecDrivenDevelopment'
 
 // Import authentication functions
 import {
@@ -773,6 +774,8 @@ function App() {
                 <OAuthCallback />
               ) : currentView === 'analyzer' ? (
                 <RepositoryAnalyzer navigationParams={navigationParams} />
+              ) : currentView === 'spec-driven' ? (
+                <SpecDrivenDevelopment />
               ) : (
                 <Dashboard onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)} />
               )}
