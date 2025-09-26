@@ -49,6 +49,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material'
 import { toast } from 'react-hot-toast'
+import OllamaService from '../lib/ollamaService'
 
 const SpecDrivenDevelopment = () => {
   const [activeTab, setActiveTab] = useState(0)
@@ -297,10 +298,38 @@ const SpecDrivenDevelopment = () => {
 // Constitution Builder Component
 const ConstitutionBuilder = ({ data, onChange }) => {
   const [constitution, setConstitution] = useState(data.constitution)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const handleSave = () => {
     onChange({...data, constitution})
     toast.success('Constitution saved!')
+  }
+
+  const generateAIConstitution = async () => {
+    if (!data.projectName) {
+      toast.error('Please enter a project name first')
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      const description = `A project called ${data.projectName} that aims to provide high-quality software solutions.`
+      const requirements = ['High code quality', 'Good documentation', 'Scalable architecture']
+
+      const generatedConstitution = await OllamaService.generateConstitution(
+        data.projectName,
+        description,
+        requirements
+      )
+
+      setConstitution(generatedConstitution)
+      toast.success('AI constitution generated successfully!')
+    } catch (error) {
+      console.error('Failed to generate constitution:', error)
+      toast.error('Failed to generate constitution. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const constitutionTemplates = [
@@ -359,7 +388,16 @@ const ConstitutionBuilder = ({ data, onChange }) => {
         </Grid>
       </Grid>
 
-      <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+      <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Button
+          variant="outlined"
+          onClick={generateAIConstitution}
+          disabled={isGenerating || !data.projectName}
+          startIcon={isGenerating ? <CircularProgress size={20} /> : null}
+        >
+          {isGenerating ? 'Generating...' : '🤖 Generate with AI'}
+        </Button>
+
         <Button variant="contained" onClick={handleSave}>
           <SaveIcon sx={{ mr: 1 }} />
           Save Constitution
@@ -372,6 +410,7 @@ const ConstitutionBuilder = ({ data, onChange }) => {
 // Specification Builder Component
 const SpecificationBuilder = ({ data, onChange, onEditSpec, onDialogOpen }) => {
   const [specifications, setSpecifications] = useState(data.specifications)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const handleAddSpec = () => {
     onDialogOpen(true)
@@ -395,16 +434,70 @@ const SpecificationBuilder = ({ data, onChange, onEditSpec, onDialogOpen }) => {
     toast.success('Specifications saved!')
   }
 
+  const generateAISpecifications = async () => {
+    if (!data.constitution) {
+      toast.error('Please create a project constitution first')
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      const generatedSpecs = await OllamaService.generateSpecifications(
+        data.constitution,
+        data.specifications
+      )
+
+      // Parse the generated specifications and add them
+      const specsArray = generatedSpecs.split('##').filter(spec => spec.trim())
+      const newSpecs = specsArray.map((spec, index) => {
+        const lines = spec.trim().split('\n')
+        const title = lines[0]?.replace(/^#+\s*/, '') || `Specification ${index + 1}`
+        const description = lines.slice(1).join('\n').trim()
+
+        return {
+          id: Date.now() + index,
+          title,
+          description,
+          priority: 'Medium',
+          status: 'Draft',
+          category: 'Feature',
+          createdAt: new Date().toISOString()
+        }
+      })
+
+      const updatedSpecs = [...data.specifications, ...newSpecs]
+      setSpecifications(updatedSpecs)
+      onChange({...data, specifications: updatedSpecs})
+
+      toast.success(`Generated ${newSpecs.length} specifications!`)
+    } catch (error) {
+      console.error('Failed to generate specifications:', error)
+      toast.error('Failed to generate specifications. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h6">
           📋 Project Specifications
         </Typography>
-        <Button variant="contained" onClick={handleAddSpec}>
-          <AddIcon sx={{ mr: 1 }} />
-          Add Specification
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={generateAISpecifications}
+            disabled={isGenerating || !data.constitution}
+            startIcon={isGenerating ? <CircularProgress size={20} /> : null}
+          >
+            {isGenerating ? 'Generating...' : '🤖 Generate with AI'}
+          </Button>
+          <Button variant="contained" onClick={handleAddSpec}>
+            <AddIcon sx={{ mr: 1 }} />
+            Add Specification
+          </Button>
+        </Box>
       </Box>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
