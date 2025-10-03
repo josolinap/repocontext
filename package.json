@@ -1,13 +1,13 @@
 {
   "name": "repository-context-generator",
-  "homepage": "https://detailer.josolinap.dedyn.io",
+  "homepage": "https://josolinap.github.io/repocontext",
   "description": "Generate comprehensive context files for GitHub repositories to help AI coding assistants understand project structure, patterns, and requirements instantly",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "type-check": "tsc --noEmit",
