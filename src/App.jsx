@@ -29,7 +29,8 @@ import {
   Brightness4,
   Brightness7,
   Person,
-  Logout
+  Logout,
+  SmartToy as AgentIcon
 } from '@mui/icons-material'
 
 // Components
@@ -39,6 +40,7 @@ import RepositoryAnalyzer from './components/RepositoryAnalyzer'
 import HelpComponent from './components/Help'
 import OAuthCallback from './components/OAuthCallback'
 import SpecDrivenDevelopment from './components/SpecDrivenDevelopment'
+import JulesAgent from './components/JulesAgent'
 
 // Import authentication functions
 import {
@@ -148,7 +150,7 @@ const createAppTheme = (mode) => createTheme({
 })
 
 function App() {
-  const [currentView, setCurrentView] = useState('dashboard')
+  const [currentView, setCurrentView] = useState('agent')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [navigationParams, setNavigationParams] = useState({})
@@ -443,8 +445,10 @@ function App() {
   }
 
   const navigationItems = [
+    { id: 'agent', label: 'Jules Agent', icon: <AgentIcon />, description: 'Autonomous SE Agent' },
     { id: 'dashboard', label: 'Dashboard', icon: <Analytics />, description: 'Get started' },
     { id: 'analyzer', label: 'Repository Analyzer', icon: <Description />, description: 'Analyze repos' },
+    { id: 'spec-driven', label: 'Spec Kit', icon: <Code />, description: 'Spec-driven development' },
     { id: 'help', label: 'Help', icon: <Help />, description: 'Get help' },
   ]
 
@@ -659,14 +663,14 @@ function App() {
                   fontSize: '1rem',
                   letterSpacing: '-0.01em'
                 }}>
-                  RepoContext
+                  Jules Agent Platform
                 </Typography>
                 <Typography variant="caption" sx={{
                   fontSize: '0.65rem',
                   letterSpacing: '0.01em',
                   opacity: 0.8
                 }}>
-                  AI Analysis
+                  Autonomous SE
                 </Typography>
               </Box>
             </Box>
@@ -767,7 +771,12 @@ function App() {
               }}
             >
               {currentView === 'dashboard' ? (
-                <Dashboard onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)} />
+                <Dashboard
+                  onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)}
+                  onNavigateToAgent={(params) => handleNavigation('agent', params)}
+                />
+              ) : currentView === 'agent' ? (
+                <JulesAgent />
               ) : currentView === 'help' ? (
                 <HelpComponent />
               ) : currentView === 'oauth-callback' ? (
@@ -777,7 +786,10 @@ function App() {
               ) : currentView === 'spec-driven' ? (
                 <SpecDrivenDevelopment />
               ) : (
-                <Dashboard onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)} />
+                <Dashboard
+                  onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)}
+                  onNavigateToAgent={(params) => handleNavigation('agent', params)}
+                />
               )}
             </Box>
           </Container>

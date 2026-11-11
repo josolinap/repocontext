@@ -21,11 +21,12 @@ import {
   Download as DownloadIcon,
   TrendingUp as TrendingUpIcon,
   Delete as DeleteIcon,
-  FileDownload as FileDownloadIcon
+  FileDownload as FileDownloadIcon,
+  SmartToy as AgentIcon
 } from '@mui/icons-material'
 import GitHubService from '../lib/github'
 
-const Dashboard = ({ onNavigateToAnalyzer = () => {} }) => {
+const Dashboard = ({ onNavigateToAnalyzer = () => {}, onNavigateToAgent = () => {} }) => {
   console.log('🏠 Dashboard component rendering...')
 
   const [githubToken, setGithubToken] = useState('')
@@ -158,8 +159,56 @@ const Dashboard = ({ onNavigateToAnalyzer = () => {} }) => {
           </Typography>
         </Box>
 
+        {/* Primary Hero: Jules Autonomous Engineering Platform Banner */}
+        <Box sx={{ mb: 6 }}>
+          <Card
+            sx={{
+              p: 2,
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
+              border: '2px solid rgba(99, 102, 241, 0.4)',
+              borderRadius: 3,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 20px 30px rgba(99, 102, 241, 0.25)'
+              }
+            }}
+            onClick={() => onNavigateToAgent && onNavigateToAgent()}
+          >
+            <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                <AgentIcon sx={{ fontSize: 48, color: 'primary.main' }} />
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    Jules Autonomous Engineering Agent
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Multi-step autonomous software engineering workflows: bash execution, git merge diff patching, testing, and reviews.
+                  </Typography>
+                </Box>
+              </Box>
+              <Button
+                variant="contained"
+                size="large"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1.5,
+                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                }}
+              >
+                Launch Jules Agent Platform →
+              </Button>
+            </CardContent>
+          </Card>
+        </Box>
+
         {/* Quick Actions */}
         <Grid container spacing={3} sx={{ mb: 6 }}>
+
           <Grid item xs={12} md={6} lg={3}>
             <Card
               sx={{
