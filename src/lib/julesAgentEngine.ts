@@ -251,7 +251,7 @@ export function applyGitMergeDiff(original: string, diffText: string): { success
     return { success: false, error: 'Search block not found in target file.' };
   }
 
-  const updated = original.replace(searchBlock, replaceBlock);
+  const updated = original.replace(searchBlock, () => replaceBlock);
   return { success: true, result: updated };
 }
 
