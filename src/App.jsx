@@ -29,7 +29,8 @@ import {
   Brightness4,
   Brightness7,
   Person,
-  Logout
+  Logout,
+  SmartToy as AgentIcon
 } from '@mui/icons-material'
 
 // Components
@@ -39,6 +40,7 @@ import RepositoryAnalyzer from './components/RepositoryAnalyzer'
 import HelpComponent from './components/Help'
 import OAuthCallback from './components/OAuthCallback'
 import SpecDrivenDevelopment from './components/SpecDrivenDevelopment'
+import JulesAgent from './components/JulesAgent'
 
 // Import authentication functions
 import {
@@ -444,7 +446,9 @@ function App() {
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <Analytics />, description: 'Get started' },
+    { id: 'agent', label: 'Jules Agent', icon: <AgentIcon />, description: 'Autonomous SE Agent' },
     { id: 'analyzer', label: 'Repository Analyzer', icon: <Description />, description: 'Analyze repos' },
+    { id: 'spec-driven', label: 'Spec Kit', icon: <Code />, description: 'Spec-driven development' },
     { id: 'help', label: 'Help', icon: <Help />, description: 'Get help' },
   ]
 
@@ -767,7 +771,12 @@ function App() {
               }}
             >
               {currentView === 'dashboard' ? (
-                <Dashboard onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)} />
+                <Dashboard
+                  onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)}
+                  onNavigateToAgent={(params) => handleNavigation('agent', params)}
+                />
+              ) : currentView === 'agent' ? (
+                <JulesAgent />
               ) : currentView === 'help' ? (
                 <HelpComponent />
               ) : currentView === 'oauth-callback' ? (
@@ -777,7 +786,10 @@ function App() {
               ) : currentView === 'spec-driven' ? (
                 <SpecDrivenDevelopment />
               ) : (
-                <Dashboard onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)} />
+                <Dashboard
+                  onNavigateToAnalyzer={(params) => handleNavigation('analyzer', params)}
+                  onNavigateToAgent={(params) => handleNavigation('agent', params)}
+                />
               )}
             </Box>
           </Container>

@@ -21,11 +21,12 @@ import {
   Download as DownloadIcon,
   TrendingUp as TrendingUpIcon,
   Delete as DeleteIcon,
-  FileDownload as FileDownloadIcon
+  FileDownload as FileDownloadIcon,
+  SmartToy as AgentIcon
 } from '@mui/icons-material'
 import GitHubService from '../lib/github'
 
-const Dashboard = ({ onNavigateToAnalyzer = () => {} }) => {
+const Dashboard = ({ onNavigateToAnalyzer = () => {}, onNavigateToAgent = () => {} }) => {
   console.log('🏠 Dashboard component rendering...')
 
   const [githubToken, setGithubToken] = useState('')
@@ -160,6 +161,54 @@ const Dashboard = ({ onNavigateToAnalyzer = () => {} }) => {
 
         {/* Quick Actions */}
         <Grid container spacing={3} sx={{ mb: 6 }}>
+          <Grid item xs={12} md={6} lg={3}>
+            <Card
+              sx={{
+                height: '100%',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                '&:hover': {
+                  boxShadow: `
+                    0 20px 25px -5px rgba(99, 102, 241, 0.25),
+                    0 10px 10px -5px rgba(99, 102, 241, 0.1)
+                  `,
+                  WebkitFontSmoothing: 'antialiased',
+                  MozOsxFontSmoothing: 'grayscale',
+                  textRendering: 'optimizeLegibility'
+                }
+              }}
+              onClick={() => onNavigateToAgent && onNavigateToAgent()}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <AgentIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Jules Agent
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Autonomous SE agent execution & workflows
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    fontWeight: 600
+                  }}
+                >
+                  Launch Agent Platform →
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
           <Grid item xs={12} md={6} lg={3}>
             <Card
               sx={{
